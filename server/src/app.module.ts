@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { WhitelistService } from './telegram/telegram.service';
+import { WhitelistService } from './whitelist/whitelist.service';
 
 @Module({
   imports: [],

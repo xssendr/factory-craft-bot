@@ -1,3 +1,5 @@
+require('dotenv').config({ path: './.env'})
+
 import { Injectable, Logger } from '@nestjs/common';
 import * as TelegramBot from 'node-telegram-bot-api';
 import { z } from 'zod';
@@ -8,8 +10,8 @@ export class WhitelistService {
     private readonly logger = new Logger(WhitelistService.name);
     private bot: TelegramBot;
     private chatId: number;
-    private readonly helperChatId = '2043879022'
-    private readonly token = "7757888274:AAFsfe08YZC0gdL3pzO7TeHPhtMi7MWqtic";
+    private readonly helperChatId = process.env.HELPER_CHAT_ID
+    private readonly token = process.env.TOKEN;
     private state: 'waitingForNick' | 'waitingForSource' | 'waitingForPlans' | null = null;
     private nick: string;
     private source: string;
