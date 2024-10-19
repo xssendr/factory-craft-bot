@@ -1,5 +1,3 @@
-require('dotenv').config({ path: './.env'})
-
 import { Injectable, Logger } from '@nestjs/common';
 import * as TelegramBot from 'node-telegram-bot-api';
 import { z } from 'zod';
@@ -51,7 +49,7 @@ export class WhitelistService {
         if (validationResult) {
             this.nick = nick;
             this.state = 'waitingForSource';
-            this.whitelistNick(nick)
+             //this.whitelistNick(nick)
             this.bot.sendMessage(this.chatId, 'Откуда вы узнали о сервере?');
         } else return
     }
@@ -85,7 +83,7 @@ export class WhitelistService {
         }
     }
 
-    private async whitelistNick(nick: string) {
+   /* private async whitelistNick(nick: string) {
         const rcon = new Rcon({
             host: 'YOUR_RCON_HOST',
             port: 4200,
@@ -101,7 +99,7 @@ export class WhitelistService {
         } finally {
             await rcon.end();
         }
-    }
+    } */
 
     private async sendSurvey(surveyData: { nick: string, source: string, plans: string }) {
         const message = `
