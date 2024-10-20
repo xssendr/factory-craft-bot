@@ -56,7 +56,7 @@ export class WhitelistService {
     if (validationResult) {
       this.nick = nick;
       this.state = 'waitingForSource';
-      //this.whitelistNick(nick)
+      this.whitelistNick(nick);
       this.bot.sendMessage(this.chatId, 'Откуда вы узнали о сервере?');
     } else return;
   }
@@ -101,24 +101,26 @@ export class WhitelistService {
     }
   }
 
-  /* private async whitelistNick(nick: string) {
-        const rcon = new Rcon({
-            host: 'YOUR_RCON_HOST',
-            port: 4200,
-            password: 'YOUR_RCON_PASSWORD',
-        });
-        await rcon.connect();
-        try {
-            await rcon.send(`whitelist add ${nick}`);
-            this.bot.sendMessage(this.chatId, `Игрок ${nick} был добавлен в вайтлист!`);
-        } catch (error) {
-            this.logger.error(`Ошибка при добавлении ника: ${error}`);
-            this.bot.sendMessage(this.chatId, `Не удалось добавить игрока ${nick} в вайтлист.`);
-        } finally {
-            await rcon.end();
-        }
-    } */
-
+  private async whitelistNick(nick: string) {
+    const rcon = new Rcon({
+      host: 'YOUR_RCON_HOST',
+      port: 4200,
+      password: 'YOUR_RCON_PASSWORD',
+    });
+    await rcon.connect();
+    try {
+      await rcon.send(`whitelist add ${nick}`);
+      this.bot.sendMessage(this.chatId, `${nick} был добавлен в вайтлист!`);
+    } catch (error) {
+      this.logger.error(`Ошибка при добавлении ника: ${error}`);
+      this.bot.sendMessage(
+        this.chatId,
+        `Не удалось добавить ${nick} в вайтлист.`,
+      );
+    } finally {
+      await rcon.end();
+    }
+  }
   private async sendSurvey(surveyData: {
     nick: string;
     source: string;
