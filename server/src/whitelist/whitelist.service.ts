@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import * as TelegramBot from 'node-telegram-bot-api';
 import { z } from 'zod';
+import { PrismaClient } from '@prisma/client';
 import { Rcon } from 'rcon-client';
 
 @Injectable()
@@ -19,6 +20,7 @@ export class WhitelistService {
   private nick: string;
   private source: string;
   private plans: string;
+  private prisma = new PrismaClient();
 
   constructor() {
     this.bot = new TelegramBot(this.token, { polling: true });
@@ -78,6 +80,38 @@ export class WhitelistService {
     this.resetState();
   }
 
+  private async saveToDatabase(surveyData: {
+    nick: string;
+    source: string;
+    plans: string;
+  }) {
+    try {
+      const existingEntry = await this.prisma.whitelistEntry.findUnique({
+        where: {
+          chatId: this.chatId, // Предполагается что chatId добавлен в вашу модель
+        },
+      });
+
+      if (existingEntry) {
+        this.bot.sendMessage(this.chatId, 'Вы уже отправили анкету');
+        return; // Прекратите выполнение, если запись уже существует
+      }
+
+      // Если записи нет, создайте новую запись
+      await this.prisma.whitelistEntry.create({
+        data: {
+          chatId: this.chatId, // Добавьте chatId в ваши данные
+          ...surveyData,
+        },
+      });
+
+      this.logger.log(`Данные для ника ${surveyData.nick} успешно сохранены.`);
+    } catch (error) {
+      this.logger.error(`Ошибка при сохранении данных: ${error}`);
+      this.bot.sendMessage(this.chatId, 'Не удалось сохранить данные.');
+    }
+  }
+
   private validateNick(nick: string): boolean {
     const nickSchema = z
       .string()
@@ -115,7 +149,7 @@ export class WhitelistService {
       this.logger.error(`Ошибка при добавлении ника: ${error}`);
       this.bot.sendMessage(
         this.chatId,
-        `Не удалось добавить ${nick} в вайтлист.`,
+        `Не удалось добавить ${nick} в вайтлист`,
       );
     } finally {
       await rcon.end();
