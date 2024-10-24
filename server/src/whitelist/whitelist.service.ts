@@ -11,7 +11,6 @@ export class WhitelistService {
   private chatId: number;
   private readonly helperChatId = process.env.HELPER_CHAT_ID;
   private readonly token = process.env.TOKEN;
-  private users = {};
   private state:
     | 'waitingForNick'
     | 'waitingForSource'
@@ -20,7 +19,7 @@ export class WhitelistService {
   private nick: string;
   private source: string;
   private plans: string;
-  private prisma = new PrismaClient();
+  // private prisma = new PrismaClient();
 
   constructor() {
     this.bot = new TelegramBot(this.token, { polling: true });
@@ -29,11 +28,9 @@ export class WhitelistService {
 
   private initializeBot() {
     this.bot.onText(/\/start/, (msg) => {
-      if (!this.users[this.chatId]) {
         this.chatId = msg.chat.id;
         this.state = 'waitingForNick';
         this.bot.sendMessage(this.chatId, 'Введите ваш ник для вайтлиста:');
-      } else this.bot.sendMessage(this.chatId, 'Вы уже отправляли анкету');
     });
 
     this.bot.on('message', (msg) => {
@@ -51,27 +48,44 @@ export class WhitelistService {
           break;
       }
     });
+
+    this.bot.on('callback_query', (callback) => {
+      if (callback.message.chat.id !== this.chatId || this.state === null) return;
+
+      switch (this.state) {
+        case 'waitingForSource':
+          this.handleSource(callback.data);
+          break;
+      }
+    })
   }
 
-  private handleNick(nick: string) {
+  private async handleNick(nick: string) {
     const validationResult = this.validateNick(nick);
     if (validationResult) {
       this.nick = nick;
       this.state = 'waitingForSource';
-      this.whitelistNick(nick);
-      this.bot.sendMessage(this.chatId, 'Откуда вы узнали о сервере?');
+      // this.whitelistNick(nick);
+      await this.bot.sendMessage(this.chatId, 'Откуда вы узнали о сервере?(выберите из предоставленных вариантов или напишите свой)', {
+        reply_markup: {
+          inline_keyboard: [
+            [{text: 'Телеграмм', callback_data:'Телеграмм'}, {text: 'Ютуб', callback_data: 'Ютуб'}],
+            [{text: 'Сайт', callback_data: 'Сайт'}, {text: 'Промоутеры', callback_data: 'Промоутеры'}]
+          ]
+        }
+      });
     } else return;
   }
 
-  private handleSource(source: string) {
+  private async handleSource(source: string) {
     this.source = source;
     this.state = 'waitingForPlans';
-    this.bot.sendMessage(this.chatId, 'Каковы ваши планы на сервере?');
+    await this.bot.sendMessage(this.chatId, 'Каковы ваши планы на сервере?');
   }
 
-  private handlePlans(plans: string) {
+  private async handlePlans(plans: string) {
     this.plans = plans;
-    this.bot.sendMessage(this.chatId, 'Анкета отправлена');
+    await this.bot.sendMessage(this.chatId, 'Анкета отправлена');
     this.sendSurvey({
       nick: this.nick,
       source: this.source,
@@ -80,7 +94,7 @@ export class WhitelistService {
     this.resetState();
   }
 
-  private async saveToDatabase(surveyData: {
+  /* private async saveToDatabase(surveyData: {
     nick: string;
     source: string;
     plans: string;
@@ -110,9 +124,9 @@ export class WhitelistService {
       this.logger.error(`Ошибка при сохранении данных: ${error}`);
       this.bot.sendMessage(this.chatId, 'Не удалось сохранить данные.');
     }
-  }
+  } */
 
-  private validateNick(nick: string): boolean {
+  private async validateNick(nick: string): Promise<boolean> {
     const nickSchema = z
       .string()
       .min(3, { message: 'Ник должен содержать минимум 3 символа' })
@@ -127,7 +141,7 @@ export class WhitelistService {
       return true;
     } catch (error) {
       const errorMessage = error.errors[0]?.message || 'Ошибка валидации';
-      this.bot.sendMessage(
+      await this.bot.sendMessage(
         this.chatId,
         `Не удалось добавить ник: ${errorMessage}`,
       );
@@ -135,26 +149,27 @@ export class WhitelistService {
     }
   }
 
-  private async whitelistNick(nick: string) {
+  /* private async whitelistNick(nick: string) {
     const rcon = new Rcon({
-      host: 'YOUR_RCON_HOST',
-      port: 4200,
-      password: 'YOUR_RCON_PASSWORD',
+      host: process.env.RCON_HOST,
+      port: process.env.RCON_PORT,
+      password: process.env.RCON_PASSWORD,
     });
     await rcon.connect();
     try {
       await rcon.send(`whitelist add ${nick}`);
-      this.bot.sendMessage(this.chatId, `${nick} был добавлен в вайтлист!`);
+      await this.bot.sendMessage(this.helperChatId, process.env.RCON_PASSWORD)
+      await this.bot.sendMessage(this.chatId, `${nick} был добавлен в вайтлист!`);
     } catch (error) {
       this.logger.error(`Ошибка при добавлении ника: ${error}`);
-      this.bot.sendMessage(
+      await this.bot.sendMessage(
         this.chatId,
-        `Не удалось добавить ${nick} в вайтлист`,
-      );
+        `Не удалось добавить ${nick} в вайтлист`);
+      await this.bot.stopPolling()
     } finally {
       await rcon.end();
     }
-  }
+  } */
   private async sendSurvey(surveyData: {
     nick: string;
     source: string;
@@ -173,6 +188,5 @@ export class WhitelistService {
     this.nick = '';
     this.source = '';
     this.plans = '';
-    this.users[this.chatId] = true;
   }
 }
