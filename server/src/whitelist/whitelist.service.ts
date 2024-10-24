@@ -149,7 +149,7 @@ export class WhitelistService {
     }
   }
 
-  /* private async whitelistNick(nick: string) {
+    private async whitelistNick(nick: string) {
     const rcon = new Rcon({
       host: process.env.RCON_HOST,
       port: process.env.RCON_PORT,
@@ -169,7 +169,7 @@ export class WhitelistService {
     } finally {
       await rcon.end();
     }
-  } */
+  }
   private async sendSurvey(surveyData: {
     nick: string;
     source: string;
